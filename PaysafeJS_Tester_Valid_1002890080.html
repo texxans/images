@@ -1,0 +1,411 @@
+<html>
+
+<head>
+    <style>
+        #apple-pay {
+            cursor: pointer;
+        }
+
+        .paysafe-js-details-description {
+            margin: 10px;
+            width: 100%;
+        }
+
+        .single-line-item {
+            margin: 10px 0;
+            flex: 1 100%;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+
+        #card-number {
+            width: 100%;
+        }
+
+        .single-line-item>.half-line-item {
+            justify-content: space-between;
+            margin: 10px 0;
+            flex-basis: 48%;
+        }
+
+        .paysafe-js-form {
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .paysafe-js-form .label {
+            padding: 0px;
+            font-size: 16px;
+            font-weight: 600;
+            line-height: 1.33;
+            text-align: left;
+            color: #00008B;
+            display: block;
+        }
+
+        .paysafe-js-form input,
+        .paysafe-js-form .paysafe-field:not(#apple-pay) {
+            padding: 10px 15px;
+            margin-top: 10px;
+            color: #333333;
+            border-radius: 2px;
+            border: solid 1px rgba(145, 146, 146, 0.5);
+            height: 25px;
+            position: relative;
+        }
+
+        .paysafe-js-form input:focus {
+            border: solid 1px rgba(0, 43, 255, 0.6);
+            box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075),
+                0 0 8px rgba(0, 43, 255, 0.6);
+        }
+
+        .paysafe-field[data-focus="true"] {
+            border: solid 1px rgba(0, 43, 255, 0.6);
+            box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075),
+                0 0 8px rgba(0, 43, 255, 0.6);
+        }
+
+        .paysafe-field[data-invalid="true"] {
+            border: solid 1px rgba(256, 0, 0, 0.5);
+            box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(255, 0, 0, 0.6);
+        }
+
+        .pay-now-button {
+            background-color: #0d8065;
+            height: 35px;
+            padding-top: 5px;
+            font-weight: bold;
+            line-height: 1.6;
+            letter-spacing: 1px;
+            color: #ffffff;
+            cursor: pointer;
+            float: left;
+            margin: 5px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-evenly;
+        }
+
+        .pay-now-button.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pay-now-button.in-action {
+            opacity: 0.5;
+            cursor: progress;
+        }
+    </style>
+</head>
+
+<body>
+    <script src="https://hosted.paysafe.com/js/v1/latest/paysafe.min.js"> </script>
+    <h1>PaysafeJS with CVV Tokenization, 3DS2 and Bad BIN Validation</h1>
+    <div class="paysafe-js-details-description">
+      <div class="half-line-item">
+        <span class="label">Set optional fields</span>
+        <input id="set-optional" type="checkbox" placeholder="optional"><br>
+        <span class="label">Enable 3DS2</span>
+        <input id="enable3DS2" type="checkbox" placeholder="3DS2">
+    </div>
+    
+        <div class="paysafe-js-form">
+          <div class="single-line-item">
+            <div class="half-line-item">
+                <span class="label">Customer token</span>
+                <input id="customer-token" class="paysafe-field"/>
+            </div>
+            <div class="half-line-item">
+              <span class="label">Payment token from</span>
+              <input id="saved-card-token" class="paysafe-field"/>
+          </div>
+          </div>
+            <div class="single-line-item">
+                <span class="label">Card number:</span>
+                <div id="card-number" class="paysafe-field"></div>
+            </div>
+            <div class="single-line-item">
+                <div class="half-line-item">
+
+                    <span class="label">CVV:</span>
+                    <div id="cvv" class="paysafe-field">
+                    </div>
+                </div>
+                <div class="half-line-item">
+                    <span class="label">Expiry Date:</span>
+                    <div id="expiry-date" class="paysafe-field"></div>
+                </div>
+
+            </div>
+            <div class="pay-now-button single-line-item disabled" id="payButton">PAY NOW</div>
+        </div>
+
+        <div id="output">
+            Output: </br>
+        </div>
+    </div>
+</body>
+
+<script type="text/javascript">
+    const API_KEY =
+    "T1QtMTExNjAxMDpCLXFhMi0wLTY3ZDJkMDk4LTAtMzAyZDAyMTUwMDkyYzFhMzU5ZGRhNTUyMjExZDMzZGI0ZDFlNDA2NTMyOThkZWMzMjgwMjE0NjY1OWNiYmNlZjc4NTYwNTVmNDAzOTFiNGQyOWU3NTc4YTcwYTAzZA==";
+
+  const options = {
+      currencyCode: "USD",
+      accounts: {
+          default: 1002890080
+      },
+      environment: "TEST",
+      fields: {
+          cardNumber: {
+              selector: "#card-number",
+              placeholder: "****************",
+              separator: " ",
+          },
+          cvv: {
+              selector: "#cvv",
+              placeholder: "****",
+              mask: false,
+          },
+          expiryDate: {
+              selector: "#expiry-date",
+              placeholder: "**/**",
+          }
+      }, style: {
+          input: {
+              "font-family": "robotoregular,Helvetica,Arial,sans-serif",
+              "font-weight": "normal",
+              "font-size": "14px"
+          },
+
+          ".valid:focus": {
+              color: "green"
+          }
+      }, 
+  };
+  const optionalCheckbox = document.getElementById('set-optional');
+  optionalCheckbox.addEventListener('change', () => {
+    if(optionalCheckbox.checked) {
+      options.fields.cardNumber.optional = true;
+      options.fields.expiryDate.optional = true;
+    } else {
+      delete options.fields.cardNumber.optional;
+      delete options.fields.expiryDate.optional;
+    }
+    clearContainers();
+    setup();
+  });
+//ading optinal 3DS2 checkbox
+const ThreeDsCheckbox = document.getElementById('enable3DS2');
+  ThreeDsCheckbox.addEventListener('change', () => {
+    if(ThreeDsCheckbox.checked) {
+      options.accounts.default = 1002624870
+    } else {
+      options.accounts.default = 1002615570
+    }
+    clearContainers();
+    setup();
+
+  });
+  const payNow = document.getElementById("payButton");
+  let instance;
+
+  setup();
+
+  function clearContainers() {
+    document.getElementById('card-number').innerHTML = '';
+    document.getElementById('cvv').innerHTML = '';
+    document.getElementById('expiry-date').innerHTML = '';
+    document.getElementById('output').innerHTML = '';
+  }
+
+  async function setup() {
+    paysafe.fields.setup(API_KEY, options)
+      .then(inst => {
+        instance = inst;
+        log("Setup insance completed.");
+        log(instance);
+        addEventListeners(instance);
+        return instance.show();
+      })
+      .then((paymentMethods) => {
+        log("Successfully showed payment methods.");
+        log(paymentMethods);
+        if (!instance.paymentMethods.card?.error) {
+            payNow.addEventListener("click", tokenize, false);
+        }
+      })
+      .catch(error => {
+        log(error);
+      })
+      
+  }
+
+  async function showPaysafeJS() {
+    try {
+        const paymentMethods = await instance.show()
+        /** Continue with events handling */
+        if (paymentMethods.card && !paymentMethods.card.error) {
+            // Card payment method is successfully initialized
+        }
+        if (paymentMethods.applePay && !paymentMethods.applePay.error) {
+            // Apple Pay payment method is successfully initialized
+        }
+    } catch(error) {
+        /** Process any errors during the show */
+    }
+}
+
+  function tokenize() {
+    const tokenizationOptions = {
+      amount: 500,
+      merchantRefNum: generateGuid(),
+      transactionType: "PAYMENT",
+      paymentType: "CARD",
+      // New fields required for saved cards
+      paymentTokenFrom: document.getElementById('saved-card-token').value,
+      singleUseCustomerToken: document.getElementById('customer-token').value,
+     
+      customerDetails: {
+        holderName: "John Smith",
+        billingDetails: {
+          country: "US",
+          zip: "90210",
+          street: "Oak Fields 6",
+          city: "ca",
+          state: "CA",
+          phone: "5111112222"
+        },
+        profile: {
+            firstName: "John",
+            lastName: "Doe",
+            email: "j.doe@test.com",
+            phone: "5111112222"
+        }
+      },
+   // optional for 3ds  
+    openAs: "IFRAME", //NEW_TAB 
+     threeDs: {
+        merchantUrl: "https://www.paysafe.com",
+        deviceChannel: "BROWSER",
+        messageCategory: "PAYMENT",
+        transactionIntent: "GOODS_OR_SERVICE_PURCHASE",
+        authenticationPurpose: "PAYMENT_TRANSACTION"
+       }
+    };
+    instance
+      .tokenize(tokenizationOptions)
+      .then((result) => {
+        log("Tokenization resolved.");
+        log(result);
+      })
+      .catch((error) => {
+        log("Error on tokenization.");
+        log(error);
+      });
+  }
+
+  // Events for Cards
+  function addEventListeners(instance) {
+    for (var fieldName in instance.fields) {
+      instance.fields(fieldName).on("Focus", handleFocus);
+      instance.fields(fieldName).on("Blur", handleBlur);
+    }
+    instance.fields("cvv cardNumber expiryDate").on("valid invalid", handleValidationEvent);
+    instance.cardBrandRecognition(handleCardBrandChange);
+    instance.unsupportedCardBrand(handleUnsupportedCardBrand);
+    instance.badBin(handleBadBin); //adding the BadBin function
+  }
+
+  function handleFocus(instance, event) {
+    var fieldName = event.target.fieldName;
+    log("FOCUS event triggered, for " + fieldName);
+    var fieldElement = getFieldByName(fieldName);
+
+    fieldElement.setAttribute("data-focus", true);
+  }
+
+  function handleBlur(instance, event) {
+    var fieldName = event.target.fieldName;
+    log("BLUR event triggered, for " + fieldName);
+    var fieldElement = getFieldByName(fieldName);
+    fieldElement.setAttribute("data-focus", false);
+  }
+
+  function handleValidationEvent(instance, event, error) {
+    var eventName = event.type;
+    log(eventName);
+    switch (eventName) {
+      case "Valid":
+        event.target.containerElement.setAttribute("data-invalid", false);
+        if (instance.areAllFieldsValid()) {
+          payNow.classList.remove("disabled");
+        }
+        break;
+      case "Invalid":
+        event.target.containerElement.setAttribute("data-invalid", true);
+        payNow.classList.add("disabled");
+        break;
+    }
+  }
+
+  function handleCardBrandChange(instance, event) {
+    log(event.data.cardBrand);
+  }
+
+  function handleUnsupportedCardBrand(instance, event) {
+    alert("Unsupported brand! - " + instance.getCardBrand() + " is not supported.");
+  }
+  function handleBadBin(instance, event) { //function to handle the iGaming BIN decline rates 
+        log("Bad Bin event");
+        log(event);
+        // We know the declineRate of the card and can do whatever we want with that information.
+        // As a merchant I would show a Pay+ window, which I have implemented
+    if (event.data.declineRate > 15) {
+        alert("Decline rate: " + event.data.declineRate);
+    }
+    }
+  function getFieldByName(string) {
+    var lowerCaseFirstLetter = string.charAt(0).toLowerCase() + string.slice(1);
+    var fieldName = lowerCaseFirstLetter.replace(/([A-Z])/g, function (x, y) {
+        return "-" + y.toLowerCase();
+    });
+    return document.getElementById(fieldName);
+  }
+
+
+  // Logging in the HTML for visibility
+  function log(obj) {
+    const outputElement = document.getElementById("output");
+    let output = outputElement.innerHTML;
+    output += "<br>[" + getCurrentTime() + "] ";
+    output += JSON.stringify(obj);
+    outputElement.innerHTML = output;
+  }
+
+  function getCurrentTime() {
+    var currentDate = new Date();
+    var hours = toTwoDigit(currentDate.getHours());
+    var minutes = toTwoDigit(currentDate.getMinutes());
+    var seconds = toTwoDigit(currentDate.getSeconds());
+    return hours + ":" + minutes + ":" + seconds;
+  }
+
+  function toTwoDigit(targetNumber) {
+    return targetNumber < 10 ? "0" + targetNumber : targetNumber;
+  }
+
+  function generateGuid() {
+    return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, (c) =>
+      (
+        c ^
+        (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))
+      ).toString(16)
+    );
+  }
+
+</script>
+
+</html>
